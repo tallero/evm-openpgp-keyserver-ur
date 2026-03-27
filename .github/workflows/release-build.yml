@@ -3,18 +3,19 @@
 #
 #    release.yaml
 #
-#    ----------------------------------------------------------------------
+#    ------------------------------------------------------------
 #    Copyright © 2024, 2025
 #                2026       Guilherme Janczak,
 #                           Robert Kirkman,
 #                           Pellegrino Prevete
 #
 #    All rights reserved
-#    ----------------------------------------------------------------------
+#    ------------------------------------------------------------
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
+#    This program is free software: you can redistribute it
+#    and/or modify it under the terms of the GNU Affero
+#    General Public License as published by the Free Software
+#    Foundation, either version 3 of the License, or
 #    (at your option) any later version.
 #
 #    This program is distributed in the hope that it will be useful,
@@ -22,8 +23,9 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU Affero General Public License for more details.
 #
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#    You should have received a copy of the GNU Affero
+#    General Public License along with this program.
+#    If not, see <https://www.gnu.org/licenses/>.
 
 
 name:
@@ -236,6 +238,7 @@ jobs:
             pkg \
               install \
                 -y \
+                "gh" \
                 "git" \
                 "jq" \
                 "tree" \
@@ -642,6 +645,7 @@ jobs:
               install \
                 -y \
                 "clang" \
+                "jq" \
                 "ninja"
           # This doesn't work
           # /entrypoint.sh \
@@ -851,6 +855,15 @@ jobs:
             ${{ secrets.GITHUB_TOKEN }}
         run: |
           _evmfs="false" \
+            -v \
+            recipe-get \
+              -o \
+                "array" \
+              -d \
+                " " \
+              "PKGBUILD" \
+              "makedepends"
+          _evmfs="false" \
             recipe-get \
               -o \
                 "array" \
@@ -859,7 +872,7 @@ jobs:
               "PKGBUILD" \
               "makedepends" > \
             "${HOME}/makedepends"
-          for _pkg in "jq" $(cat "${HOME}/makedepends"); do \
+          for _pkg in $(cat "${HOME}/makedepends"); do \
             _depend_name="$( \
               /entrypoint.sh \
                 version-split \
@@ -895,6 +908,12 @@ jobs:
       - name:
           Builds the Android package.
         run: |
+          /entrypoint.sh \
+            recipe-get \
+              -v \
+              "PKGBUILD" \
+               "pkgbase" || \
+          true
           export \
             _pkgbase="$( \
               /entrypoint.sh \
@@ -933,6 +952,8 @@ jobs:
           /entrypoint.sh \
             echo \
               "Home: ${HOME}"
+          echo \
+            "Packages found:"
           find \
             "${PWD}" \
             -iname \
@@ -1616,6 +1637,7 @@ jobs:
         run: |
           ls
           _evmfs="false" \
+          _git_service="github" \
           recipe-get \
             -o \
               "array" \
@@ -1685,16 +1707,22 @@ jobs:
       - name:
           Builds the Arch package.
         run: |
+          _evmfs="false" \
+          _git_service="github" \
+          recipe-get \
+            -v \
+            "PKGBUILD" \
+            "pkgbase"
           export \
             _pkgbase="$( \
               _evmfs="false" \
               _git_service="github" \
               recipe-get \
                 "PKGBUILD" \
-                "pkgbase")"
+                "pkgbase")" && \
           su \
             -c \
-              "cd ${PWD} && _evmfs="false" _git_service="github" reallymakepkg -v -u -w '/home/user/${_pkgbase}-build' -- -df --nocheck --skippgpcheck" - \
+              "cd ${PWD} && _evmfs="false" _git="false" _git_service="github" reallymakepkg -v -u -w '/home/user/${_pkgbase}-build' -- -df --nocheck --skippgpcheck && ls -lsh" - \
             "user"
       # - name:
       #     Installs the package.
@@ -1781,6 +1809,7 @@ jobs:
             git
             mingw-w64-${{ matrix.env }}-jq
             mingw-w64-${{ matrix.env }}-gcc
+            mingw-w64-${{ matrix.env }}-nodejs
             python-docutils
             unzip
       - name:
@@ -1994,6 +2023,10 @@ jobs:
           GH_TOKEN:
             ${{ secrets.GITHUB_TOKEN }}
         run: |
+          pacman \
+            -S \
+            --noconfirm \
+            "mingw-w64-${{ matrix.env }}-github-cli"
           bash \
             ".github/gur-mini" \
             "themartiancompany" \
@@ -2156,6 +2189,7 @@ jobs:
             "sha256sums"
           PKGEXT='.pkg.tar.xz' \
           _evmfs="false" \
+          _git="false" \
           _git_service="github" \
           makepkg \
             -df \
